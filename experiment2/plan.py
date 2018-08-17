@@ -1,7 +1,6 @@
-from __future__ import print_function
 from ortools.linear_solver import pywraplp
+from collections import defaultdict
 import pandas as pd
-import pdb
 
 flows = pd.read_csv('flows.csv')
 products = list(flows)[1:]
@@ -34,40 +33,25 @@ def main():
   solver = pywraplp.Solver('Planning', pywraplp.Solver.GLOP_LINEAR_PROGRAMMING)
 
   # variables
-  accumulation_for_of = {}
-  accumulation_of = {}
-  capital_stock_for_of = {}
-  depreciation_in_production_of = {}
-  final_consumption_of = {}
-  flow_for_of = {}
-  labor_in_year = {}
-  labor_for = {}
-  output_of = {}
-  productive_consumption_of = {}
-  target_fullfillment_in_year = {} #x
+  accumulation_for_of = defaultdict(lambda: defaultdict(dict))
+  accumulation_of = defaultdict(lambda: defaultdict(dict))
+  capital_stock_for_of = defaultdict(lambda: defaultdict(dict))
+  depreciation_in_production_of = defaultdict(lambda: defaultdict(dict))
+  final_consumption_of = defaultdict(lambda: defaultdict(dict))
+  flow_for_of = defaultdict(lambda: defaultdict(dict))
+  labor_in_year = defaultdict(lambda: defaultdict(dict))
+  labor_for = defaultdict(lambda: defaultdict(dict))
+  output_of = defaultdict(lambda: defaultdict(dict))
+  productive_consumption_of = defaultdict(lambda: defaultdict(dict))
+  target_fulfillment_in_year = defaultdict(lambda: defaultdict(dict))
 
   for y in range(years):
-    accumulation_for_of[y] = {}
-    accumulation_of[y] = {}
-    capital_stock_for_of[y] = {}
-    depreciation_in_production_of[y] = {}
-    final_consumption_of[y] = {}
-    flow_for_of[y] = {}
-    labor_for[y] = {}
-    output_of[y] = {}
-    productive_consumption_of[y] = {}
-
-    target_fullfillment_in_year[y] = solver.NumVar(0.0, solver.infinity(),
-            f"target_fullfillment_in_year_{y}")
+    target_fulfillment_in_year[y] = solver.NumVar(0.0, solver.infinity(),
+            f"target_fulfillment_in_year_{y}")
     labor_in_year[y] = solver.NumVar(0.0, solver.infinity(),
             f"labor_in_year_{y}")
 
     for p in products:
-      accumulation_for_of[y][p] = {}
-      capital_stock_for_of[y][p] = {}
-      depreciation_in_production_of[y][p] = {}
-      flow_for_of[y][p] = {}
-
       accumulation_of[y][p] = solver.NumVar(0.0, solver.infinity(),
               f"accumulation_of_{p}_year_{y}")
       final_consumption_of[y][p] = solver.NumVar(0.0, solver.infinity(),
@@ -96,7 +80,7 @@ def main():
       if target(p, y) > 0:
         leontief_constraint = solver.Constraint(0, solver.infinity(), 'leontief')
         leontief_constraint.SetCoefficient(final_consumption_of[y][p], 1/target(p, y))
-        leontief_constraint.SetCoefficient(target_fullfillment_in_year[y], -1)
+        leontief_constraint.SetCoefficient(target_fulfillment_in_year[y], -1)
     # 2. labor total
     labor_total_constraint = solver.Constraint(0, solver.infinity(), 'labor_total')
     labor_total_constraint.SetCoefficient(labor_in_year[y], 1)
@@ -161,7 +145,7 @@ def main():
   # objective
   objective = solver.Objective()
   for y in range(years):
-      objective.SetCoefficient(target_fullfillment_in_year[y], 1)
+      objective.SetCoefficient(target_fulfillment_in_year[y], 1)
   objective.SetMaximization()
 
   print(solver.ExportModelAsLpFormat(obfuscated = False))
@@ -172,25 +156,59 @@ def main():
   result_status = solver.Solve()
 
   # output results
-  print(result_status == pywraplp.Solver.OPTIMAL)
+  print(f"Found optimal solution? {result_status == pywraplp.Solver.OPTIMAL}")
+  print('\nSolution:')
 
   if (result_status == pywraplp.Solver.OPTIMAL):
+    target_fulfillment_in_year = { y: v.solution_value() for y, v in target_fulfillment_in_year.items() }
+    labor_in_year = { y: v.solution_value() for y, v in labor_in_year.items() }
     for y in range(years):
-      print(f"target_fullfillment_in_year_{y}: {target_fullfillment_in_year[y].solution_value()}")
-      print(f"labor_in_year_{y}: {labor_in_year[y].solution_value()}")
+      print(f"target_fulfillment_in_year_{y}: {target_fulfillment_in_year[y]}")
+      print(f"labor_in_year_{y}: {labor_in_year[y]}")
+
+      accumulation_of[y] = { p: v.solution_value() for p, v in accumulation_of[y].items() }
+      final_consumption_of[y] = { p: v.solution_value() for p, v in final_consumption_of[y].items() }
+      labor_for[y] = { p: v.solution_value() for p, v in labor_for[y].items() }
+      output_of[y] = { p: v.solution_value() for p, v in output_of[y].items() }
+      productive_consumption_of[y] = { p: v.solution_value() for p, v in productive_consumption_of[y].items() }
 
       for p in products:
-        print(f"accumulation_of_{p}_year_{y}: {accumulation_of[y][p].solution_value()}")
-        print(f"final_consumption_of_{p}_year_{y}: {final_consumption_of[y][p].solution_value()}")
-        print(f"labor_for_{p}_year_{y}: {labor_for[y][p].solution_value()}")
-        print(f"output_of_{p}_year_{y}: {output_of[y][p].solution_value()}")
-        print(f"productive_comsumption_of_{p}_year_{y}: {productive_consumption_of[y][p].solution_value()}")
+        print(f"accumulation_of_{p}_year_{y}: {accumulation_of[y][p]}")
+        print(f"final_consumption_of_{p}_year_{y}: {final_consumption_of[y][p]}")
+        print(f"labor_for_{p}_year_{y}: {labor_for[y][p]}")
+        print(f"output_of_{p}_year_{y}: {output_of[y][p]}")
+        print(f"productive_comsumption_of_{p}_year_{y}: {productive_consumption_of[y][p]}")
+
+        accumulation_for_of[y][p] = { q: v.solution_value() for q, v in accumulation_for_of[y][p].items() }
+        capital_stock_for_of[y][p] = { q: v.solution_value() for q, v in capital_stock_for_of[y][p].items() }
+        depreciation_in_production_of[y][p] = { q: v.solution_value() for q, v
+                in depreciation_in_production_of[y][p].items() }
+        flow_for_of[y][p] = { q: v.solution_value() for q, v in flow_for_of[y][p].items() }
 
         for q in products:
-          print(f"accumulation_for_{p}_of_{q}_year_{y}: {accumulation_for_of[y][p][q].solution_value()}")
-          print(f"capital_stock_for_{p}_of_{q}_year_{y}: {capital_stock_for_of[y][p][q].solution_value()}")
-          print(f"depreciation_in_{p}_production_of_{q}_year_{y}: {depreciation_in_production_of[y][p][q].solution_value()}")
-          print(f"flow_for_{q}_of_{q}_year_{y}: {flow_for_of[y][p][q].solution_value()}")
+          print(f"accumulation_for_{p}_of_{q}_year_{y}: {accumulation_for_of[y][p][q]}")
+          print(f"capital_stock_for_{p}_of_{q}_year_{y}: {capital_stock_for_of[y][p][q]}")
+          print(f"depreciation_in_{p}_production_of_{q}_year_{y}: {depreciation_in_production_of[y][p][q]}")
+          print(f"flow_for_{q}_of_{q}_year_{y}: {flow_for_of[y][p][q]}")
+
+  # export
+  df = pd.DataFrame.from_dict(target_fulfillment_in_year, orient='index')
+  df.to_csv('out/target_fulfillment_in_year.csv')
+
+  df = pd.DataFrame.from_dict(labor_in_year, orient='index')
+  df.to_csv('out/labor_in_year.csv')
+
+  df = pd.DataFrame.from_dict(accumulation_of, orient='index')
+  df.to_csv('out/accumulation_of.csv', columns=products)
+  df = pd.DataFrame.from_dict(final_consumption_of, orient='index')
+  df.to_csv('out/final_consumption_of.csv', columns=products)
+  df = pd.DataFrame.from_dict(labor_for, orient='index')
+  df.to_csv('out/labor_for.csv', columns=products)
+  df = pd.DataFrame.from_dict(productive_consumption_of, orient='index')
+  df.to_csv('out/productive_consumption_of.csv', columns=products)
+  df = pd.DataFrame.from_dict(output_of, orient='index')
+  df.to_csv('out/output_of.csv', columns=products)
+
 
 if __name__ == '__main__':
   main()
