@@ -29,3 +29,6 @@ uses linear programming with targets, input output flows, and additional constra
 ### Experiment 2
 
 uses the algorithm (linear programming) from https://github.com/wc22m/5yearplan. This repository also has additional explanations about the input data.
+
+**Sankey Diagram**
+![visualssankey](https://user-images.githubusercontent.com/891721/44308827-80108b80-a371-11e8-99c8-dca58cb1e40f.png)
