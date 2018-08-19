@@ -6,6 +6,7 @@ These are experiments with planning an economy by setting targets based on needs
 
 You need to install python3, [OR-tools](https://developers.google.com/optimization/install/python/linux) and the listed [requirements](requirements.txt).
 
+`pip install git+https://github.com/anazalea/pySankey.git` is required for some visualizations.
 
 ## How To Run
 
@@ -15,6 +16,8 @@ In each experiment folder there is a python script that can be run with
 python3 plan.py
 
 ```
+
+Some experiments also have jupyter notebooks with visualizations.
 
 
 ## The Experiments
