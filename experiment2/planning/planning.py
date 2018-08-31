@@ -3,18 +3,21 @@ import pandas as pd
 from ortools.linear_solver import pywraplp
 
 class Planning:
+    def __init__(self, input_dir, output_dir):
+        self.input_dir = input_dir
+        self.output_dir = output_dir
 
     def import_example_data(self):
-        self.flows = pd.read_csv('flows.csv')
+        self.flows = pd.read_csv(f"{self.input_dir}/flows.csv")
         self.products = list(self.flows)[1:]
         rows = list(self.flows['headings'])
         self.row_map = {name: index for index, name in enumerate(rows)}
 
-        self.targets = pd.read_csv('targets.csv')
+        self.targets = pd.read_csv(f"{self.input_dir}/targets.csv")
         self.years = self.targets.shape[0]
 
-        self.cap = pd.read_csv('capital_stock.csv')
-        self.dep = pd.read_csv('depreciation_rates.csv')
+        self.cap = pd.read_csv(f"{self.input_dir}/capital_stock.csv")
+        self.dep = pd.read_csv(f"{self.input_dir}/depreciation_rates.csv")
 
     def setup_variables(self):
         self.accumulation_for_of = defaultdict(lambda: defaultdict(dict))
@@ -194,21 +197,21 @@ class Planning:
 
         self.format_results()
         df = pd.DataFrame.from_dict(self.target_fulfillment_in_year, orient='index')
-        df.to_csv('out/target_fulfillment_in_year.csv')
+        df.to_csv(f"{self.output_dir}/target_fulfillment_in_year.csv")
 
         df = pd.DataFrame.from_dict(self.labor_in_year, orient='index')
-        df.to_csv('out/labor_in_year.csv')
+        df.to_csv(f"{self.output_dir}/labor_in_year.csv")
 
         df = pd.DataFrame.from_dict(self.accumulation_of, orient='index')
-        df.to_csv('out/accumulation_of.csv', columns=self.products)
+        df.to_csv(f"{self.output_dir}/accumulation_of.csv", columns=self.products)
         df = pd.DataFrame.from_dict(self.final_consumption_of, orient='index')
-        df.to_csv('out/final_consumption_of.csv', columns=self.products)
+        df.to_csv(f"{self.output_dir}/final_consumption_of.csv", columns=self.products)
         df = pd.DataFrame.from_dict(self.labor_for, orient='index')
-        df.to_csv('out/labor_for.csv', columns=self.products)
+        df.to_csv(f"{self.output_dir}/labor_for.csv", columns=self.products)
         df = pd.DataFrame.from_dict(self.productive_consumption_of, orient='index')
-        df.to_csv('out/productive_consumption_of.csv', columns=self.products)
+        df.to_csv(f"{self.output_dir}/productive_consumption_of.csv", columns=self.products)
         df = pd.DataFrame.from_dict(self.output_of, orient='index')
-        df.to_csv('out/output_of.csv', columns=self.products)
+        df.to_csv(f"{self.output_dir}/output_of.csv", columns=self.products)
 
     def output_result(self):
         print(f"Found optimal solution? {self.result_status == pywraplp.Solver.OPTIMAL}")

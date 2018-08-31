@@ -2,3 +2,4 @@
 */out
 out.txt
 .coverage
+.pytest_cache

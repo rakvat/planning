@@ -5,7 +5,7 @@ from planning import Planning
 
 
 def main():
-    planning = Planning()
+    planning = Planning('test_data', 'out/test_data')
     planning.import_example_data()
     planning.setup_solver()
     planning.print_solver()
