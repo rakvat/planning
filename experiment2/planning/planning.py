@@ -81,7 +81,7 @@ class Planning:
 
     def __setup_year_p_based_constraints(self, y, p):
         # 4. labor constraint
-        if self.__io('output', p) != 0:
+        if self.__io('labor', p) != 0:
             labor_constraint = self.solver.Constraint(0, self.solver.infinity(), 'labor')
             labor_constraint.SetCoefficient(self.output_of[y][p], -1)
             labor_constraint.SetCoefficient(self.labor_for[y][p], self.__io('output', p)/self.__io('labor', p))
@@ -237,7 +237,7 @@ class Planning:
                         print(f"flow_for_{q}_of_{q}_year_{y}: {self.flow_for_of[y][p][q]}")
 
     def __target(self, key, year):
-        return self.targets[key][year]
+        return float(self.targets[key][year])
 
     def __io(self, input_product, output_product):
         return self.flows[output_product][self.row_map[input_product]]
