@@ -14,7 +14,6 @@ class Planning:
 
     def derivative_harmony(self, target, netoutput):
         epsilon = 0.000001
-        # sys.float_info.epsilon
         base = self.harmony(target, netoutput)
         base_plus_epsilon = self.harmony(target, epsilon + netoutput)
         return (base_plus_epsilon - base) / epsilon
