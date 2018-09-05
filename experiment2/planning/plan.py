@@ -1,11 +1,15 @@
 """This creates a 5 year plan for a small example economy
 algorithm from https://github.com/wc22m/5yearplan """
 
+import sys
+import more_itertools as mit
 from planning import Planning
 
 
 def main():
-    planning = Planning('test_data', 'out/test_data')
+    input_dir = mit.nth(sys.argv, 1, 'test_data')
+    output_dir = mit.nth(sys.argv, 2, 'out/test_data')
+    planning = Planning(input_dir, output_dir)
     planning.import_example_data()
     planning.setup_solver()
     planning.print_solver()
