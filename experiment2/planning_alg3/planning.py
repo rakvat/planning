@@ -28,19 +28,9 @@ class Planning:
         self.targets = pd.read_csv(f"{self.input_dir}/targets.csv")
         self.years = self.targets.shape[0]
 
-        self.cap = pd.read_csv(f"{self.input_dir}/capital_stock.csv")
-        self.dep = pd.read_csv(f"{self.input_dir}/depreciation_rates.csv")
-
     def harmonize(self):
         # fake it till you make it
         self.labor_in_year = {0: 10, 1: 9, 2: 8, 3: 7, 4: 8}
-        self.accumulation_of = {
-                0: { "coal": 1, "iron" : 1, "corn": 1, "bread": 1},
-                1: { "coal": 1, "iron" : 1, "corn": 1, "bread": 1},
-                2: { "coal": 1, "iron" : 1, "corn": 1, "bread": 1},
-                3: { "coal": 1, "iron" : 1, "corn": 1, "bread": 1},
-                4: { "coal": 1, "iron" : 1, "corn": 1, "bread": 1},
-        }
         self.labor_for = {
                 0: { "coal": 1, "iron" : 1, "corn": 1, "bread": 1},
                 1: { "coal": 1, "iron" : 1, "corn": 1, "bread": 1},
@@ -69,7 +59,6 @@ class Planning:
                 3: { "coal": 0.1, "iron" : 0.1, "corn": 0, "bread": 1},
                 4: { "coal": 0, "iron" : 0.1, "corn": 0, "bread": 1},
         }
-
         self.target_fulfillment_in_year = { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1 }
 
     def export_results(self):
@@ -77,8 +66,6 @@ class Planning:
         df.to_csv(f"{self.output_dir}/target_fulfillment_in_year.csv")
         df = pd.DataFrame.from_dict(self.labor_in_year, orient='index')
         df.to_csv(f"{self.output_dir}/labor_in_year.csv")
-        df = pd.DataFrame.from_dict(self.accumulation_of, orient='index')
-        df.to_csv(f"{self.output_dir}/accumulation_of.csv", columns=self.products)
         df = pd.DataFrame.from_dict(self.final_consumption_of, orient='index')
         df.to_csv(f"{self.output_dir}/final_consumption_of.csv", columns=self.products)
         df = pd.DataFrame.from_dict(self.labor_for, orient='index')
@@ -94,9 +81,3 @@ class Planning:
 
     def __io(self, input_product, output_product):
         return self.flows[output_product][self.row_map[input_product]]
-
-    def __capital_stock(self, input_product, output_product):
-        return self.cap[output_product][self.row_map[input_product]]
-
-    def __depreciation_rates(self, input_product, output_product):
-        return self.dep[output_product][self.row_map[input_product]]
