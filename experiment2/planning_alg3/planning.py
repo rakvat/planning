@@ -24,6 +24,7 @@ class Planning:
     def import_data(self):
         self.flows = pd.read_csv(f"{self.input_dir}/flows.csv")
         self.products = list(self.flows)[1:]
+        self.num_products = len(self.products)
         rows = list(self.flows['headings'])
         self.row_map = {name: index for index, name in enumerate(rows)}
 
@@ -33,30 +34,14 @@ class Planning:
     def harmonize(self):
         # fake it till you make it
         self.labor_in_year = np.array([10, 9, 8, 7, 8])
-        self.labor_for = np.array([
-                [1, 1, 1, 1],
-                [1, 1, 1, 1],
-                [1, 1, 1, 1],
-                [0.1, 1, 1, 1],
-                [0, 1, 1, 1],
-        ], dtype=float)
-        self.output_of = np.array([
-                [1.1, 0.1, 1, 2],
-                [1.1, 0.2, 1, 2],
-                [1.1, 0.1, 1.1, 2],
-                [0.1, 0.2, 1.1, 3],
-                [0.1, 0.3, 1.1, 3],
-        ], dtype=float)
-        self.productive_consumption_of = np.array([
-                [0.1, 0.1, 1, 0],
-                [0.1, 0.1, 1, 0],
-                [0.1, 0.1, 1, 0],
-                [0.1, 0.1, 1, 0],
-                [0.1, 0.1, 1, 0],
-        ], dtype=float)
+        self.labor_for = np.random.rand(5, self.num_products)
+        self.output_of = 3 * np.random.rand(5, self.num_products) + 2
+        self.productive_consumption_of = np.random.rand(5, self.num_products)
         self.final_consumption_of = self.output_of - self.productive_consumption_of
 
-        product_targets = np.array(self.targets)[:,1:5].astype(float) # strip year and labor column
+        # strip year and labor column
+        product_targets = np.array(self.targets)[:,1:(self.num_products + 1)].astype(float)
+
         self.target_fulfillment_of = np.divide(
                 self.final_consumption_of,
                 product_targets,

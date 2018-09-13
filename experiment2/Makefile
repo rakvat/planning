@@ -8,7 +8,7 @@ run_harmonizer:
 	python planning_alg3/plan.py test_data out/harmonizer
 
 run_harmonizer_uk:
-	python planning_alg3/plan.py uk_data out/uk_data
+	python planning_alg3/plan.py uk_data out/harmonizer_uk_data
 
 test:
 	python -m unittest tests/*.py
