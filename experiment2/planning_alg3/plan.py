@@ -11,10 +11,7 @@ def main():
     output_dir = mit.nth(sys.argv, 2, 'out/test_data')
     planning = Planning(input_dir, output_dir)
     planning.import_data()
-    planning.setup_solver()
-    planning.print_solver()
-    planning.solve()
-    planning.output_result()
+    planning.harmonize()
     planning.export_results()
 
 if __name__ == '__main__':
