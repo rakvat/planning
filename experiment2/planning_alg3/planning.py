@@ -1,7 +1,9 @@
 from collections import defaultdict
 import pandas as pd
+import numpy as np
 import math
 import sys
+import pdb
 
 class Planning:
     def __init__(self, input_dir, output_dir):
@@ -30,49 +32,51 @@ class Planning:
 
     def harmonize(self):
         # fake it till you make it
-        self.labor_in_year = {0: 10, 1: 9, 2: 8, 3: 7, 4: 8}
-        self.labor_for = {
-                0: { "coal": 1, "iron" : 1, "corn": 1, "bread": 1},
-                1: { "coal": 1, "iron" : 1, "corn": 1, "bread": 1},
-                2: { "coal": 1, "iron" : 1, "corn": 1, "bread": 1},
-                3: { "coal": 0.1, "iron" : 1, "corn": 1, "bread": 1},
-                4: { "coal": 0, "iron" : 1, "corn": 1, "bread": 1},
-        }
-        self.output_of = {
-                0: { "coal": 1.1, "iron" : 0.1, "corn": 1, "bread": 0},
-                1: { "coal": 1.1, "iron" : 0.1, "corn": 1, "bread": 0},
-                2: { "coal": 1.1, "iron" : 0.1, "corn": 1, "bread": 0},
-                3: { "coal": 0.1, "iron" : 0.1, "corn": 1, "bread": 0},
-                4: { "coal": 0.1, "iron" : 0.1, "corn": 1, "bread": 0},
-        }
-        self.productive_consumption_of = {
-                0: { "coal": 0.1, "iron" : 0.1, "corn": 1, "bread": 0},
-                1: { "coal": 0.1, "iron" : 0.1, "corn": 1, "bread": 0},
-                2: { "coal": 0.1, "iron" : 0.1, "corn": 1, "bread": 0},
-                3: { "coal": 0.1, "iron" : 0.1, "corn": 1, "bread": 0},
-                4: { "coal": 0.1, "iron" : 0.1, "corn": 1, "bread": 0},
-        }
-        self.final_consumption_of = {
-                0: { "coal": 1, "iron" : 0.1, "corn": 0, "bread": 1},
-                1: { "coal": 0.5, "iron" : 0.1, "corn": 0, "bread": 1},
-                2: { "coal": 0.25, "iron" : 0.1, "corn": 0, "bread": 1},
-                3: { "coal": 0.1, "iron" : 0.1, "corn": 0, "bread": 1},
-                4: { "coal": 0, "iron" : 0.1, "corn": 0, "bread": 1},
-        }
-        self.target_fulfillment_in_year = { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1 }
+        self.labor_in_year = np.array([10, 9, 8, 7, 8])
+        self.labor_for = np.array([
+                [1, 1, 1, 1],
+                [1, 1, 1, 1],
+                [1, 1, 1, 1],
+                [0.1, 1, 1, 1],
+                [0, 1, 1, 1],
+        ], dtype=float)
+        self.output_of = np.array([
+                [1.1, 0.1, 1, 2],
+                [1.1, 0.2, 1, 2],
+                [1.1, 0.1, 1.1, 2],
+                [0.1, 0.2, 1.1, 3],
+                [0.1, 0.3, 1.1, 3],
+        ], dtype=float)
+        self.productive_consumption_of = np.array([
+                [0.1, 0.1, 1, 0],
+                [0.1, 0.1, 1, 0],
+                [0.1, 0.1, 1, 0],
+                [0.1, 0.1, 1, 0],
+                [0.1, 0.1, 1, 0],
+        ], dtype=float)
+        self.final_consumption_of = self.output_of - self.productive_consumption_of
+
+        product_targets = np.array(self.targets)[:,1:5].astype(float) # strip year and labor column
+        self.target_fulfillment_of = np.divide(
+                self.final_consumption_of,
+                product_targets,
+                out = np.ones_like(self.final_consumption_of),
+                where = product_targets != 0
+        )
+        self.target_fulfillment_in_year = np.sum(self.target_fulfillment_of, axis = 1)
 
     def export_results(self):
-        df = pd.DataFrame.from_dict(self.target_fulfillment_in_year, orient='index')
+        df = pd.DataFrame(self.target_fulfillment_in_year)
         df.to_csv(f"{self.output_dir}/target_fulfillment_in_year.csv")
-        df = pd.DataFrame.from_dict(self.labor_in_year, orient='index')
+        df = pd.DataFrame(self.labor_in_year)
         df.to_csv(f"{self.output_dir}/labor_in_year.csv")
-        df = pd.DataFrame.from_dict(self.final_consumption_of, orient='index')
+        df = pd.DataFrame(self.final_consumption_of, columns=self.products)
         df.to_csv(f"{self.output_dir}/final_consumption_of.csv", columns=self.products)
-        df = pd.DataFrame.from_dict(self.labor_for, orient='index')
+        df = pd.DataFrame(self.labor_for, columns=self.products)
         df.to_csv(f"{self.output_dir}/labor_for.csv", columns=self.products)
-        df = pd.DataFrame.from_dict(self.productive_consumption_of, orient='index')
+        df = pd.DataFrame(self.productive_consumption_of, columns=self.products)
         df.to_csv(f"{self.output_dir}/productive_consumption_of.csv", columns=self.products)
-        df = pd.DataFrame.from_dict(self.output_of, orient='index')
+        df = pd.DataFrame(self.output_of, columns=self.products)
         df.to_csv(f"{self.output_dir}/output_of.csv", columns=self.products)
 
 
