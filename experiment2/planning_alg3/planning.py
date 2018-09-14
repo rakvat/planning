@@ -12,9 +12,10 @@ class Planning:
 
     def import_data(self):
         self.flows = pd.read_csv(f"{self.input_dir}/flows.csv")
-        self.products = list(self.flows)[1:]
-        self.num_products = len(self.products)
         rows = list(self.flows['headings'])
+        self.products = list(self.flows)[1:]
+        self.flows = np.array(self.flows)[:,1:].astype(float)
+        self.num_products = len(self.products)
         self.row_map = {name: index for index, name in enumerate(rows)}
         self.targets = pd.read_csv(f"{self.input_dir}/targets.csv")
         self.years = self.targets.shape[0]
@@ -28,7 +29,6 @@ class Planning:
         self.calc_harmony()
         self.calc_labor()
         self.calc_target_fulfillment()
-
 
     def export_results(self):
         df = pd.DataFrame(self.target_fulfillment_in_year)
@@ -54,10 +54,14 @@ class Planning:
         base_plus_epsilon = self.harmony(target, epsilon + netoutput)
         return (base_plus_epsilon - base) / epsilon
 
-
     def calc_outputs(self):
-        self.output_of = 3 * np.random.rand(5, self.num_products) + 2
-        self.productive_consumption_of = np.random.rand(5, self.num_products)
+        self.output_of = np.multiply(self.production_weights, self.__output_row())
+        # A shape year/products
+        # B shape products/products
+        # Aik*Bjk->ij
+        self.productive_consumption_of = np.einsum(
+                'ik,jk->ij', self.production_weights, self.__product_flow_matrix())
+        # self.productive_consumption_of = np.random.rand(5, self.num_products)
         self.final_consumption_of = self.output_of - self.productive_consumption_of
 
     def calc_harmony(self):
@@ -73,7 +77,7 @@ class Planning:
         self.target_fulfillment_in_year = np.sum(self.target_fulfillment_of, axis = 1)
 
     def calc_labor(self):
-        self.labor_for = np.random.rand(5, self.num_products)
+        self.labor_for = np.multiply(self.production_weights, self.__labor_row())
         self.labor_in_year = np.sum(self.labor_for, axis = 1)
 
     def __target(self, key, year):
@@ -81,3 +85,12 @@ class Planning:
 
     def __io(self, input_product, output_product):
         return self.flows[output_product][self.row_map[input_product]]
+
+    def __output_row(self):
+        return self.flows[-1]
+
+    def __labor_row(self):
+        return self.flows[-2]
+
+    def __product_flow_matrix(self):
+        return self.flows[:-2,:]
