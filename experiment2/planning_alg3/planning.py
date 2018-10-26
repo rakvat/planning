@@ -25,10 +25,26 @@ class Planning:
     def harmonize(self):
         # random initial production weights
         self.production_weights = 100 * np.random.rand(5, self.num_products)
-        self.calc_outputs()
-        self.calc_harmony()
-        self.calc_labor()
-        self.calc_target_fulfillment()
+
+        for i in range(1, 10):
+          self.calc_outputs()
+          self.calc_harmony()
+          self.calc_labor()
+          self.calc_target_fulfillment()
+          self.adjust_production_weights()
+
+    def adjust_production_weights(self):
+        self.equalise_harmony()
+        self.rescale_intensity()
+
+    def equalise_harmony(self):
+        return 1
+
+    # shrink or expand all industries in order to not exceed target level of use of limited resources
+    def rescale_intensity(self):
+        # expand products needed by people
+        # shrink products that have input products needed by underfulfilled products
+        print("todo")
 
     def export_results(self):
         df = pd.DataFrame(self.target_fulfillment_in_year)
@@ -45,6 +61,7 @@ class Planning:
         df.to_csv(f"{self.output_dir}/output_of.csv", columns=self.products)
 
     def harmony(self, target, netouput):
+        if target == 0.0: return 0
         scale = (netouput - target) / target
         return scale - 0.5 * pow(scale, 2) if scale < 0 else math.log(scale+1)
 
@@ -65,7 +82,9 @@ class Planning:
         self.final_consumption_of = self.output_of - self.productive_consumption_of
 
     def calc_harmony(self):
-        return 1
+        self.product_harmony = np.vectorize(self.harmony)(self.product_targets, self.final_consumption_of)
+        self.mean_harmony = self.product_harmony.mean()
+        self.product_harmony_derivatives = np.vectorize(self.derivative_harmony)(self.product_targets, self.final_consumption_of)
 
     def calc_target_fulfillment(self):
         self.target_fulfillment_of = np.divide(
