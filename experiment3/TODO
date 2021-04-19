@@ -1,0 +1,21 @@
+X make run_harmonizer run
+X make it return fake targets in the same format
+X remove accum, dep, cap to keep it simple
+X calc target fulfillment and finaloutput
+X make it work with UK data
+X implement fake balance
+  X random initial weights
+  X output target
+X can we use an alg from ML instead?
+- what other data do we need for a MVP -> I think nothing
+  - limited resources for each year (e.g. labor, coal)
+  - initial resources
+- without additional limits, wouldn't the below alg just produce huge amounts without limit?
+- optimization loop:
+  X with current product weights calc harmony for each product
+  - sort by harmony
+  - reduce production of over and increase production of under fulfilled
+    - don't we have to check which input product is critical and optimize for that?
+  - calc output
+  - watch progress
+- do I need the complicated derivative calculation from paul?

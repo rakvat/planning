@@ -1,3 +1,6 @@
+ortools
+pulp
+pysankey
 pandas
 jupyter
 matplotlib
