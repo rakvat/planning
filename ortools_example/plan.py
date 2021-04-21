@@ -78,7 +78,10 @@ class Planner:
         self.net_production_of = {}
         for product_name in self.product_names:
             self.net_production_of[product_name] = self.solver.NumVar(0.0, self.solver.infinity(), f"net_production_of_{product_name}")
-            sum_inputs = sum(self.resource_map[other_product_name].ingredients[product_name].amount for other_product_name in self.product_names)
+            sum_inputs = sum(
+                self.gross_production_of[other_product_name] * self.resource_map[other_product_name].ingredients[product_name].amount
+                for other_product_name in self.product_names
+            )
             self.solver.Add(self.net_production_of[product_name] == self.gross_production_of[product_name] - sum_inputs)
 
         self.total_labor = self.solver.NumVar(0.0, self.solver.infinity(), "Total labor")

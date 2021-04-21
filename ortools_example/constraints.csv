@@ -1,4 +1,4 @@
 headings,wheat,bread,pizza,beer,childcare
-minimum,0,50,5,1,10
+minimum,0.1,2,0.2,0.1,2
 prio,5,10,2,1,9
 envimpact,1,1,2,2,0.05
