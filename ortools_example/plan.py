@@ -13,10 +13,10 @@ PRIO_KEY = "prio"
 @dataclass
 class Resource:
     name: str
+    unit: str
 
 @dataclass
-class Product:
-    name: str
+class Product(Resource):
     minimum: float
     envimpact: float
     prio: float  # should be between 10 (highest) and 0 (lowest)
@@ -29,7 +29,7 @@ class Product:
 
 @dataclass
 class Ingredient:
-    resource: Union[Product, Resource]
+    resource: Resource
     amount: float
 
 
@@ -46,26 +46,31 @@ class Planner:
             self.build_model()
             self.solve_with(objective)
 
+    def get_resource(self, key: str) -> Resource:
+        return self.labour_resource if key == LABOR_KEY else self.product_map[key]
 
     def load_data(self) -> None:
+        units = pd.read_csv(os.path.join(self.INPUT_FOLDER, 'units.csv'))
         constraints = pd.read_csv(os.path.join(self.INPUT_FOLDER, 'constraints.csv'))
         input_output = pd.read_csv(os.path.join(self.INPUT_FOLDER, 'input_output.csv'))
         self.product_names = input_output.keys()[1:]
-        self.resource_map = {}
+        self.product_map:dict[str, Product] = {}
         for product_name in self.product_names:
             product_constraints = dict(zip(constraints["headings"].values, constraints[product_name]))
-            self.resource_map[product_name] = Product(
+            unit = units[product_name][0]
+            self.product_map[product_name] = Product(
                 name=product_name,
                 ingredients={},
+                unit=unit,
                 **product_constraints,
             )
 
-        self.resource_map[LABOR_KEY] = Resource(name="labor")
+        self.labour_resource = Resource(name="labor", unit="kh")
 
         for product_name in self.product_names:
             input_dict = dict(zip(input_output["headings"].values, input_output[product_name]))
-            ingredients = {key: Ingredient(resource=self.resource_map[key], amount=value) for key, value in input_dict.items()}
-            self.resource_map[product_name].ingredients = ingredients
+            ingredients = {key: Ingredient(resource=self.get_resource(key), amount=value) for key, value in input_dict.items()}
+            self.product_map[product_name].ingredients = ingredients
 
     def build_model(self) -> None:
         self.solver = pywraplp.Solver('Planning', pywraplp.Solver.GLOP_LINEAR_PROGRAMMING)
@@ -79,26 +84,29 @@ class Planner:
         for product_name in self.product_names:
             self.net_production_of[product_name] = self.solver.NumVar(0.0, self.solver.infinity(), f"net_production_of_{product_name}")
             sum_inputs = sum(
-                self.gross_production_of[other_product_name] * self.resource_map[other_product_name].ingredients[product_name].amount
+                self.gross_production_of[other_product_name] * self.product_map[other_product_name].ingredients[product_name].amount
                 for other_product_name in self.product_names
             )
             self.solver.Add(self.net_production_of[product_name] == self.gross_production_of[product_name] - sum_inputs)
 
         self.total_labor = self.solver.NumVar(0.0, self.solver.infinity(), "Total labor")
         sum_labor = sum(
-            self.gross_production_of[product_name] * self.resource_map[product_name].required_labor
+            self.gross_production_of[product_name] * self.product_map[product_name].required_labor
             for product_name in self.product_names
         )
         self.solver.Add(self.total_labor == sum_labor)
 
         self.total_environmental_credit = self.solver.NumVar(0.0, self.solver.infinity(), "Used environmental credit")
-        sum_envimpact = sum(self.gross_production_of[product_name] * self.resource_map[product_name].envimpact for product_name in self.product_names)
+        sum_envimpact = sum(
+            self.gross_production_of[product_name] * self.product_map[product_name].envimpact
+            for product_name in self.product_names
+        )
         self.solver.Add(self.total_environmental_credit == sum_envimpact)
 
         # constraints
         # 1. every product reaches it's minimum
         for product_name in self.product_names:
-            self.solver.Add(self.net_production_of[product_name] >= self.resource_map[product_name].minimum, f"minimum_{product_name}")
+            self.solver.Add(self.net_production_of[product_name] >= self.product_map[product_name].minimum, f"minimum_{product_name}")
 
         # 2. gross production stays below env allowance
         self.solver.Add(self.total_environmental_credit <= self.ENV_ALLOWANCE, "environmental allowance")
@@ -113,7 +121,7 @@ class Planner:
         print("***** Minimum Labor Objective *****")
         objective = self.solver.Objective()
         for product_name in self.product_names:
-            if (labor:=self.resource_map[product_name].required_labor) == 0:
+            if (labor:=self.product_map[product_name].required_labor) == 0:
                 continue
             objective.SetCoefficient(self.gross_production_of[product_name], labor)
 
@@ -123,7 +131,7 @@ class Planner:
         print("***** Maximal Production Objective *****")
         objective = self.solver.Objective()
         for product_name in self.product_names:
-            product = self.resource_map[product_name]
+            product = self.product_map[product_name]
             coeff = (product.prio * 0.1) * product.envimpact
             objective.SetCoefficient(self.net_production_of[product_name], coeff)
 
@@ -147,15 +155,16 @@ class Planner:
         print("Suggested Plan")
         print("--------------")
         for product_name in self.product_names:
-            product = self.resource_map[product_name]
+            product = self.product_map[product_name]
             print(
-                f"{product.name}: {self.gross_production_of[product_name].solution_value()}, "
-                f"net output {self.net_production_of[product_name].solution_value()}, "
-                f"envimpact: {self.gross_production_of[product_name].solution_value() * product.envimpact}, "
-                f"work: {self.gross_production_of[product_name].solution_value() * product.required_labor}, "
+                f"{product.name}: {self.gross_production_of[product_name].solution_value():.3f}{product.unit}, "
+                f"net output {self.net_production_of[product_name].solution_value():.3f}{product.unit}, "
+                f"minimum {product.minimum:.3f}{product.unit}, "
+                f"envimpact: {self.gross_production_of[product_name].solution_value() * product.envimpact:.3f}, "
+                f"work: {self.gross_production_of[product_name].solution_value() * product.required_labor:.3f}{self.labour_resource.unit}, "
             )
-        print(f"Total labor: {self.total_labor.solution_value()}")
-        print(f"Used environmental credit: {self.total_environmental_credit.solution_value()}/{self.ENV_ALLOWANCE}")
+        print(f"Total labor: {self.total_labor.solution_value():0.3f}{self.labour_resource.unit}")
+        print(f"Used environmental credit: {self.total_environmental_credit.solution_value():0.3f}/{self.ENV_ALLOWANCE:0.3f}")
 
 
 if __name__ == '__main__':
