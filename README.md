@@ -8,14 +8,16 @@ These are experiments with planning an economy by setting targets based on needs
 
 ## How To Run
 
-In each experiment folder there is a python script that can be run with
+In each experiment folder there is a python script that can be run with something like
 
 ```bash
-python3 plan.py
+python plan.py
 
 ```
 
 Some experiments also have jupyter notebooks with visualizations.
+
+See the README file in that folder for more details.
 
 
 ## The Experiments

@@ -32,7 +32,7 @@ class Ingredient:
 
 
 class PlanningInput:
-    INPUT_FOLDER = "."
+    INPUT_FOLDER = "./input"
 
     def get_resource(self, key: str) -> Resource:
         return self.labour_resource if key == LABOR_KEY else self.product_map[key]
