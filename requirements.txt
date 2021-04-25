@@ -7,3 +7,5 @@ matplotlib
 pip
 numpy
 seaborn
+mypy
+black
