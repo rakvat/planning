@@ -22,25 +22,56 @@ class Planner:
             self.add_variables()
             self.add_objective(objective)
             self.add_constraints()
+            self.solve()
+            self.output_solution(debug=False)
 
     def add_variables(self):
-        self.gross_production_of = {}
-        for product_name in self.input.product_names:
-            self.gross_production_of[product_name] = pl.LpVariable(
-                f"gross_production_of_{product_name}", lowBound=0
-            )
+        self.gross_production_of = pl.LpVariable.dicts(
+            "gross production of",
+            (product_name for product_name in self.input.product_names),
+            lowBound=0,
+            cat='Continuous'
+        )
 
-        self.net_production_of = {}
-        for product_name in self.input.product_names:
-            self.net_production_of[product_name] = pl.LpVariable(
-                f"net_production_of_{product_name}", lowBound=0
-            )
+        self.net_production_of = pl.LpVariable.dicts(
+            "net production of",
+            (product_name for product_name in self.input.product_names),
+            lowBound=0,
+            cat='Continuous'
+        )
 
-        self.total_labor = pl.LpVariable("Total labor", lowBound=0)
+        self.total_labor = pl.LpVariable("Total labor", lowBound=0, cat='Continuous')
 
         self.total_environmental_credit = pl.LpVariable(
-            "Used environmental credit", lowBound=0
+            "Used environmental credit", lowBound=0, cat='Continuous'
         )
+
+    def add_objective(self, build_objective: Callable) -> None:
+        print("\n")
+        self.solver = pl.getSolver('PULP_CBC_CMD')
+        build_objective()
+
+    def set_min_labor_objective(self) -> None:
+        print("***** Minimum Labor Objective *****")
+        self.model = pl.LpProblem("Planning", pl.LpMinimize)
+
+        self.model += pl.lpSum([
+            labor * self.gross_production_of[product_name]
+            for product_name in self.input.product_names
+            if (labor := self.input.product_map[product_name].required_labor) > 0
+        ]), "minimize labor"
+
+
+    def set_max_production_objective(self) -> None:
+        print("***** Maximal Production Objective *****")
+        self.model = pl.LpProblem("Planning", pl.LpMaximize)
+
+        self.model += pl.lpSum([
+            (
+                (product:=self.input.product_map[product_name]).prio * 0.1
+            ) * product.envimpact * self.net_production_of[product_name]
+            for product_name in self.input.product_names
+        ]), "maximize productivity"
 
     def add_constraints(self) -> None:
         # 0. inputs + net production == gross production
@@ -76,34 +107,6 @@ class Planner:
 
         # 5. gross production stays below env allowance
         self.model += self.total_environmental_credit <= self.ENV_ALLOWANCE, "environmental allowance"
-
-    def add_objective(self, build_objective: Callable) -> None:
-        print("\n")
-        self.solver = pl.getSolver('PULP_CBC_CMD')
-        build_objective()
-        self.solve()
-        self.output_solution(debug=True)
-
-    def set_min_labor_objective(self) -> None:
-        self.model = pl.LpProblem("Planning", pl.LpMinimize)
-
-        print("***** Minimum Labor Objective *****")
-        objective = 0
-        for product_name in self.input.product_names:
-            if (labor := self.input.product_map[product_name].required_labor) == 0:
-                continue
-            objective += self.gross_production_of[product_name] * labor
-        self.model += objective, "minimize labor"
-
-    def set_max_production_objective(self) -> None:
-        print("***** Maximal Production Objective *****")
-        self.model = pl.LpProblem("Planning", pl.LpMaximize)
-        objective = 0
-        for product_name in self.input.product_names:
-            product = self.input.product_map[product_name]
-            coeff = (product.prio * 0.1) * product.envimpact
-            objective += self.net_production_of[product_name] * coeff
-        self.model += objective, "maximize productivity"
 
     def solve(self) -> None:
         self.result = self.model.solve(self.solver)
