@@ -4,8 +4,11 @@ pysankey
 pandas
 jupyter
 matplotlib
-pip
 numpy
 seaborn
+more_itertools
+click
 mypy
 black
+pylint
+coverage

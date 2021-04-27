@@ -1,3 +1,4 @@
+import click
 from typing import Callable
 from ortools.linear_solver import pywraplp
 
@@ -10,8 +11,9 @@ PRIO_KEY = "prio"
 class Planner:
     ENV_ALLOWANCE = 100
 
-    def __init__(self) -> None:
-        self.input = PlanningInput()
+    def __init__(self, input_folder: str, debug: bool) -> None:
+        self.debug = debug
+        self.input = PlanningInput(input_folder)
         self.input.load_data()
         self.solver = pywraplp.Solver(
             "Planning", pywraplp.Solver.GLOP_LINEAR_PROGRAMMING
@@ -25,7 +27,7 @@ class Planner:
             self.add_objective(objective)
             self.add_constraints()
             self.solve()
-            self.output_solution(debug=True)
+            self.output_solution(debug=self.debug)
 
     def add_variables(self) -> None:
         self.gross_production_of = {}
@@ -159,5 +161,12 @@ class Planner:
         )
 
 
-if __name__ == "__main__":
-    Planner().process()
+@click.command()
+@click.argument('input_folder', default='./input_simple')
+@click.option('--debug/--nodebug', default=False, show_default=True, type=bool)
+def plan(input_folder: str, debug: bool):
+    planner = Planner(input_folder, debug)
+    planner.process()
+
+if __name__ == '__main__':
+    plan()

@@ -1,5 +1,5 @@
+import click
 import pulp as pl
-
 from typing import Callable
 
 from planning_input import PlanningInput
@@ -11,8 +11,9 @@ PRIO_KEY = "prio"
 class Planner:
     ENV_ALLOWANCE = 100
 
-    def __init__(self) -> None:
-        self.input = PlanningInput()
+    def __init__(self, input_folder: str, debug: bool) -> None:
+        self.debug = debug
+        self.input = PlanningInput(input_folder)
         self.input.load_data()
 
     def process(self) -> None:
@@ -23,7 +24,7 @@ class Planner:
             self.add_objective(objective)
             self.add_constraints()
             self.solve()
-            self.output_solution(debug=True)
+            self.output_solution(debug=self.debug)
 
     def add_variables(self):
         self.gross_production_of = pl.LpVariable.dicts(
@@ -163,6 +164,12 @@ class Planner:
             f"Used environmental credit: {self.total_environmental_credit.varValue:0.3f}/{self.ENV_ALLOWANCE:0.3f}"
         )
 
+@click.command()
+@click.argument('input_folder', default='./input_simple')
+@click.option('--debug/--nodebug', default=False, show_default=True, type=bool)
+def plan(input_folder: str, debug: bool):
+    planner = Planner(input_folder, debug)
+    planner.process()
 
-if __name__ == "__main__":
-    Planner().process()
+if __name__ == '__main__':
+    plan()
